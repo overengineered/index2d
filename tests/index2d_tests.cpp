@@ -47,19 +47,19 @@ namespace Index2d_Tests
             for (auto i = 0; i < itemCount; i++)
             {
                 buffer[i] = i;
-                grid.set(i, i, buffer + i);
+                grid.set(-i, -i, buffer + i);
             }
 
-            auto total = 0;
-            grid.for_each([&total, &grid](int x, int y, int* item)
+            auto index = 0;
+            grid.for_each([&index, &grid](int x, int y, int* item)
             {
-                Assert::AreEqual(x, *item);
-                Assert::AreEqual(y, *item);
-                Assert::AreEqual(grid.get(total, total), item);
-                total++;
+                Assert::AreEqual(*item, -x);
+                Assert::AreEqual(*item, -y);
+                Assert::AreEqual(index, *grid.get(-index, -index));
+                index++;
             });
 
-            Assert::AreEqual(itemCount, total);
+            Assert::AreEqual(itemCount, index);
         }
 
     };

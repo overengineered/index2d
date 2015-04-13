@@ -108,7 +108,7 @@ private:
         auto overlapSizeX = std::max(0, std::min(sizeX, xmax - xmin) + std::min(minX - xmin, 0));
         auto overlapSizeY = std::max(0, std::min(sizeY, ymax - ymin) + std::min(minY - ymin, 0));
         auto sourceOffset = sizeX - overlapSizeX;
-        auto targetOffset = std::min(minX - xmin, 0);
+        auto targetOffset = std::max(minX - xmin, 0) + std::max(minY - ymin, 0) * (xmax - xmin);
 
         sizeX = xmax - xmin;
         sizeY = ymax - ymin;
