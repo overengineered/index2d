@@ -20,7 +20,7 @@ public:
         if (item == nullptr) return;
         ensure_assignable(x, y);
 
-        size_t index = (y - minY) * sizeY + (x - minX);
+        size_t index = (y - minY) * sizeX + (x - minX);
         assert(index < capacity());
         data[index] = item;
     }
@@ -30,7 +30,7 @@ public:
         if (data == nullptr) return nullptr;
         if (x < minX || x >= minX + sizeX) return nullptr;
         if (y < minY || y >= minY + sizeY) return nullptr;
-        size_t index = (y - minY) * sizeY + (x - minX);
+        size_t index = (y - minY) * sizeX + (x - minX);
         assert(index < capacity());
         return data[index];
     }
