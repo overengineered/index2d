@@ -34,8 +34,8 @@ namespace Index2d_Tests
             auto grid = index2d<uint8_t>{};
             auto item = static_cast<uint8_t>(3);
             grid.set(0, 1, &item);
-            grid.set(1, 0, &item);
-            Assert::IsTrue(nullptr == grid.get(0, 0));
+            grid.set(1000, 0, &item);
+            Assert::IsTrue(nullptr == grid.get(990, 1));
         }
 
         TEST_METHOD(AddedItems_CanBeIterated)
