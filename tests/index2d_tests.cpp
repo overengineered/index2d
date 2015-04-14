@@ -62,5 +62,68 @@ namespace Index2d_Tests
             Assert::AreEqual(itemCount, index);
         }
 
+        TEST_METHOD(AfterMoving_ItemsRemain)
+        {
+            auto builder = [](int* i)
+            {
+                auto grid = index2d<int>{};
+                grid.set(*i, *i, i);
+                return grid;
+            };
+
+            auto item = 2;
+            auto result = builder(&item);
+
+            Assert::AreEqual(&item, result.get(2, 2));
+        }
+
+        TEST_METHOD(Copy_RetainsItems)
+        {
+            auto item = 3;
+
+            auto one = index2d<int>{};
+            one.set(0, 0, &item);
+
+            auto two = index2d<int>{ one };
+            two.set(-1, -1, &item);
+
+            Assert::AreEqual(&item, two.get(0, 0));
+            Assert::AreEqual(static_cast<int*>(nullptr), one.get(-1, -1));
+        }
+
+        TEST_METHOD(Assigment_ProducesCopy)
+        {
+            auto item = 3;
+
+            auto one = index2d<int>{};
+            auto two = index2d<int>{};
+
+            one.set(0, 0, &item);
+            two = one;
+            one.set(1, 1, &item);
+
+            auto total = 0;
+            two.for_each([&total](int x, int y, int* item)
+            {
+                Assert::AreEqual(0, x);
+                Assert::AreEqual(0, y);
+                Assert::AreEqual(3, *item);
+                total++;
+                Assert::AreEqual(1, total);
+            });
+        }
+
+        TEST_METHOD(MoveAssigment_RetainsItems)
+        {
+            auto item = 42;
+
+            auto one = index2d<int>{};
+            auto two = index2d<int>{};
+
+            one.set(0, 0, &item);
+            two = std::move(one);
+
+            Assert::AreEqual(42, *two.get(0, 0));
+        }
     };
 }

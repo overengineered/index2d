@@ -1,6 +1,12 @@
 #include <cassert>
 #include <algorithm>
 
+#ifdef _MSC_VER
+#define OE_NOEXCEPT _NOEXCEPT
+#else
+#define OE_NOEXCEPT noexcept
+#endif
+
 namespace overengineered {
 
 
@@ -15,6 +21,25 @@ private:
 public:
     index2d() : data{ nullptr } {}
 
+    ~index2d() OE_NOEXCEPT
+    {
+        if (data != nullptr) delete[] data;
+    }
+
+    index2d(const index2d& rhs) OE_NOEXCEPT
+        : minX{ rhs.minX }, minY{ rhs.minY }, sizeX{ rhs.sizeX }, sizeY{ rhs.sizeY }
+    {
+        auto length = capacity();
+        data = new T*[length];
+        memcpy(data, rhs.data, length * sizeof(T*));
+    }
+
+    index2d(index2d&& rhs) OE_NOEXCEPT
+        : data{ rhs.data }, minX{ rhs.minX }, minY{ rhs.minY }, sizeX{ rhs.sizeX }, sizeY{ rhs.sizeY }
+    {
+        rhs.data = nullptr;
+    }
+
     void set(int x, int y, T* item)
     {
         if (item == nullptr) return;
@@ -25,7 +50,7 @@ public:
         data[index] = item;
     }
 
-    T* get(int x, int y)
+    T* get(int x, int y) const
     {
         if (data == nullptr) return nullptr;
         if (x < minX || x >= minX + sizeX) return nullptr;
@@ -35,7 +60,7 @@ public:
         return data[index];
     }
 
-    size_t capacity()
+    size_t capacity() const
     {
         return sizeX * sizeY;
     }
@@ -56,7 +81,7 @@ public:
     }
 
     template<typename Func>
-    void for_each(Func f)
+    void for_each(Func f) const
     {
         if (data == nullptr) return;
 
@@ -72,6 +97,42 @@ public:
                 y++;
             }
         }
+    }
+
+    index2d& operator=(const index2d& rhs) OE_NOEXCEPT
+    {
+        if (&rhs == this) return *this;
+
+        if (rhs.data == nullptr)
+        {
+            if (data != nullptr) delete[] data;
+            data = nullptr;
+            return *this;
+        }
+
+        bool reallocate = capacity() != rhs.capacity();
+        minX = rhs.minX; minY = rhs.minY;
+        sizeX = rhs.sizeX; sizeY = rhs.sizeY;
+
+        int length = capacity();
+        if (reallocate)
+        {
+            if (data != nullptr) delete[] data;
+            data = new T*[length];
+        }
+
+        memcpy(data, rhs.data, length * sizeof(T*));
+        return *this;
+    }
+
+    index2d& operator=(index2d&& rhs) OE_NOEXCEPT
+    {
+        if (&rhs == this) return *this;
+        data = rhs.data;
+        rhs.data = nullptr;
+        minX = rhs.minX; minY = rhs.minY;
+        sizeX = rhs.sizeX; sizeY = rhs.sizeY;
+        return *this;
     }
 
 private:
