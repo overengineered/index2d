@@ -52,6 +52,33 @@ namespace Index2d_Tests
             Assert::IsTrue(nullptr == grid.get(990, 1));
         }
 
+        TEST_METHOD(AfterReserving_UsingReservedAreaDoesNotIncreaseCapacity)
+        {
+            auto grid = index2d<int>{};
+            auto item = 0;
+            
+            grid.reserve(-100, 100, 20, 200);
+            auto capacity = grid.capacity();
+
+            grid.set(-100, 20, &item);
+            grid.set(-100, 200, &item);
+            grid.set(100, 20, &item);
+            grid.set(100, 200, &item);
+
+            Assert::AreEqual(capacity, grid.capacity());
+        }
+
+        TEST_METHOD(AfterReserving_ItemsOutsideReservedRangeCanBeAdded)
+        {
+            auto grid = index2d<int>{};
+            auto item = 7;
+
+            grid.reserve(0, 0, 1, 1);
+            grid.set(10, 100, &item);
+
+            Assert::AreEqual(item, *grid.get(10, 100));
+        }
+
         TEST_METHOD(AddedItems_CanBeIterated)
         {
             const auto itemCount = 100;

@@ -81,17 +81,17 @@ public:
 
     void reserve(int minX, int maxX, int minY, int maxY)
     {
-        int xmin = minX, xmax = maxX;
-        int ymin = minY, ymax = maxY;
+        int xmin = minX, xsize = maxX - minX + 1;
+        int ymin = minY, ysize = maxY - minY + 1;
         if (data != nullptr)
         {
             xmin = std::min(xmin, this->minX);
-            xmax = std::max(xmax, this->minX + sizeX);
+            xsize = std::max(xsize, sizeX);
             ymin = std::min(ymin, this->minY);
-            ymax = std::max(ymax, this->minY + sizeY);
+            ysize = std::max(ysize, sizeY);
         }
 
-        resize(xmin, xmax, ymin, ymax);
+        resize(xmin, xsize, ymin, ysize);
     }
 
     template<typename Func>
@@ -154,39 +154,39 @@ private:
     {
         if (data == nullptr)
         {
-            resize(x - 5, x + 5, y - 5, y + 5);
+            resize(x - 5, 10, y - 5, 10);
             return;
         }
 
-        int xmin = minX, xmax = minX + sizeX;
-        int ymin = minY, ymax = minY + sizeY;
+        int xmin = minX, xmax = minX + sizeX - 1;
+        int ymin = minY, ymax = minY + sizeY - 1;
         bool expandX = true, expandY = true;
 
         if (x < xmin) xmin = x - (sizeX / 3);
-        else if (x >= xmax) xmax = x + (sizeX / 3);
+        else if (x > xmax) xmax = x + (sizeX / 3);
         else expandX = false;
 
         if (y < ymin) ymin = y - (sizeY / 3);
-        else if (y >= ymax) ymax = y + (sizeY / 3);
+        else if (y > ymax) ymax = y + (sizeY / 3);
         else expandY = false;
 
-        if (expandX || expandY) resize(xmin, xmax, ymin, ymax);
+        if (expandX || expandY) resize(xmin, xmax - xmin + 1, ymin, ymax - ymin + 1);
     }
 
-    void resize(int xmin, int xmax, int ymin, int ymax)
+    void resize(int xmin, int xsize, int ymin, int ysize)
     {
-        assert(xmin < xmax);
-        assert(ymin < ymax);
+        assert(xsize > 0);
+        assert(ysize > 0);
 
         auto oldData = data;
         auto oldSizeX = sizeX;
-        auto overlapSizeX = std::max(0, std::min(sizeX, xmax - xmin) + std::min(minX - xmin, 0));
-        auto overlapSizeY = std::max(0, std::min(sizeY, ymax - ymin) + std::min(minY - ymin, 0));
+        auto overlapSizeX = std::max(0, std::min(sizeX, xsize) + std::min(minX - xmin, 0));
+        auto overlapSizeY = std::max(0, std::min(sizeY, ysize) + std::min(minY - ymin, 0));
         auto sourceOffset = sizeX - overlapSizeX;
-        auto targetOffset = std::max(minX - xmin, 0) + std::max(minY - ymin, 0) * (xmax - xmin);
+        auto targetOffset = std::max(minX - xmin, 0) + std::max(minY - ymin, 0) * xsize;
 
-        sizeX = xmax - xmin;
-        sizeY = ymax - ymin;
+        sizeX = xsize;
+        sizeY = ysize;
         minX = xmin;
         minY = ymin;
         auto length = sizeX * sizeY;
