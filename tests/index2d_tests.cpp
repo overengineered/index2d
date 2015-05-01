@@ -52,6 +52,19 @@ namespace Index2d_Tests
             Assert::IsTrue(nullptr == grid.get(990, 1));
         }
 
+        TEST_METHOD(ReservingAfterAddingSomeItems_IncreasesCapacity)
+        {
+            auto grid = index2d<int>{};
+            auto item = 0;
+
+            grid.set(0, 0, &item);
+            auto capacity = grid.capacity();
+
+            grid.reserve(5, 8, 5, 8);
+
+            Assert::AreNotEqual(capacity, grid.capacity());
+        }
+
         TEST_METHOD(AfterReserving_UsingReservedAreaDoesNotIncreaseCapacity)
         {
             auto grid = index2d<int>{};
