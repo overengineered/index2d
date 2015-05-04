@@ -91,7 +91,8 @@ public:
             ysize = std::max(maxY - ymin + 1, sizeY);
         }
 
-        resize(xmin, xsize, ymin, ysize);
+        if (data == nullptr || xsize > sizeX || ysize > sizeY)
+            resize(xmin, xsize, ymin, ysize);
     }
 
     template<typename Func>
