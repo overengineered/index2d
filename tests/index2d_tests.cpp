@@ -57,10 +57,10 @@ namespace Index2d_Tests
             auto grid = index2d<int>{};
             auto item = 0;
 
-            grid.set(0, 0, &item);
+            grid.set(93, 841, &item);
             auto capacity = grid.capacity();
 
-            grid.reserve(5, 8, 5, 8);
+            grid.reserve(90, 98, 835, 844);
 
             Assert::AreNotEqual(capacity, grid.capacity());
         }

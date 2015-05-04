@@ -86,9 +86,9 @@ public:
         if (data != nullptr)
         {
             xmin = std::min(xmin, this->minX);
-            xsize = std::max(maxX - xmin + 1, sizeX);
+            xsize = std::max(maxX + 1, this->minX + sizeX) - xmin;
             ymin = std::min(ymin, this->minY);
-            ysize = std::max(maxY - ymin + 1, sizeY);
+            ysize = std::max(maxY + 1, this->minY + sizeY) - ymin;
         }
 
         if (data == nullptr || xsize > sizeX || ysize > sizeY)
