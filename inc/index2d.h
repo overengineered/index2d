@@ -13,6 +13,9 @@
 // IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include <cassert>
+#include <map>
+#include <array>
+#include <memory>
 #include <algorithm>
 
 #ifdef _MSC_VER
@@ -24,92 +27,94 @@
 namespace overengineered {
 
 
-template<class T>
+template<class T, uint8_t BlockWidth = 10>
 class index2d final
 {
 private:
-    T** data;
-    int minX, minY;
-    int sizeX, sizeY;
+    class block
+    {
+    private:
+        std::array<T*, BlockWidth*BlockWidth> data;
+    public:
+
+        void set(int i, int j, T* value) { data[i + j * BlockWidth] = value; }
+        T* get(int i, int j) { return data[i + j * BlockWidth]; }
+    };
+
+    std::map<std::tuple<int, int>, std::unique_ptr<block>> container;
     
 public:
-    index2d() : data{ nullptr } {}
-
-    ~index2d() OE_NOEXCEPT
+    index2d()
     {
-        if (data != nullptr) delete[] data;
+        static_assert(BlockWidth > 0, "Positive number is required for BlockWidth");
     }
 
-    index2d(const index2d& rhs) OE_NOEXCEPT
-        : minX{ rhs.minX }, minY{ rhs.minY }, sizeX{ rhs.sizeX }, sizeY{ rhs.sizeY }
+    index2d(const index2d& rhs)
     {
-        auto length = capacity();
-        data = new T*[length];
-        memcpy(data, rhs.data, length * sizeof(T*));
+        for (const auto& it : rhs.container)
+        {
+            container.emplace_hint(container.end(),
+                it.first, std::unique_ptr<block>(new block(*it.second)));
+        }
     }
 
-    index2d(index2d&& rhs) OE_NOEXCEPT
-        : data{ rhs.data }, minX{ rhs.minX }, minY{ rhs.minY }, sizeX{ rhs.sizeX }, sizeY{ rhs.sizeY }
+    index2d(index2d&& rhs)
+        : container(std::move(rhs.container))
     {
-        rhs.data = nullptr;
     }
 
     void set(int x, int y, T* item)
     {
-        if (item == nullptr) return;
-        ensure_assignable(x, y);
+        int qx, rx, qy, ry;
+        modulo(x, BlockWidth, qx, rx);
+        modulo(y, BlockWidth, qy, ry);
 
-        size_t index = (y - minY) * sizeX + (x - minX);
-        assert(index < capacity());
-        data[index] = item;
+        auto index = std::tuple<int, int>(qx, qy);
+
+        auto entry = container.find(index);
+        if (entry == container.end())
+        {
+            entry = container.emplace_hint(container.end(),
+                index, std::unique_ptr<block>(new block()));
+        }
+
+        entry->second->set(rx, ry, item);
     }
 
     T* get(int x, int y) const
     {
-        if (data == nullptr) return nullptr;
-        if (x < minX || x >= minX + sizeX) return nullptr;
-        if (y < minY || y >= minY + sizeY) return nullptr;
-        size_t index = (y - minY) * sizeX + (x - minX);
-        assert(index < capacity());
-        return data[index];
+        int qx, rx, qy, ry;
+        modulo(x, BlockWidth, qx, rx);
+        modulo(y, BlockWidth, qy, ry);
+
+        auto index = std::tuple<int, int>(qx, qy);
+
+        auto entry = container.find(index);
+        if (entry == container.end()) return nullptr;
+
+        return entry->second->get(rx, ry);
     }
 
     size_t capacity() const
     {
-        return sizeX * sizeY;
-    }
-
-    void reserve(int minX, int maxX, int minY, int maxY)
-    {
-        int xmin = minX, xsize = maxX - minX + 1;
-        int ymin = minY, ysize = maxY - minY + 1;
-        if (data != nullptr)
-        {
-            xmin = std::min(xmin, this->minX);
-            xsize = std::max(maxX + 1, this->minX + sizeX) - xmin;
-            ymin = std::min(ymin, this->minY);
-            ysize = std::max(maxY + 1, this->minY + sizeY) - ymin;
-        }
-
-        if (data == nullptr || xsize > sizeX || ysize > sizeY)
-            resize(xmin, xsize, ymin, ysize);
+        return container.size() * BlockWidth * BlockWidth;
     }
 
     template<typename Func>
     void for_each(Func f) const
     {
-        if (data == nullptr) return;
-
-        int x = minX, y = minY, n = capacity(), xLimit = minX + sizeX;
-        for (int index = 0; index < n; index++)
+        for (const auto& it : container)
         {
-            if (data[index] != nullptr)
-                f(x, y, data[index]);
-            x++;
-            if (x == xLimit)
+            int bx = std::get<0>(it.first);
+            int by = std::get<1>(it.first);
+            for (int i = 0; i < BlockWidth; i++)
             {
-                x = minX;
-                y++;
+                for (int j = 0; j < BlockWidth; j++)
+                {
+                    T* value = it.second->get(i, j);
+                    if (value == nullptr) continue;
+                    f(bx * BlockWidth + i, by * BlockWidth + j, value);
+                }
             }
         }
     }
@@ -117,93 +122,32 @@ public:
     index2d& operator=(const index2d& rhs) OE_NOEXCEPT
     {
         if (&rhs == this) return *this;
-
-        if (rhs.data == nullptr)
+        container.clear();
+        for (const auto& it : rhs.container)
         {
-            if (data != nullptr) delete[] data;
-            data = nullptr;
-            return *this;
+            container.emplace_hint(container.end(),
+                it.first, std::unique_ptr<block>(new block(*it.second)));
         }
-
-        bool reallocate = capacity() != rhs.capacity();
-        minX = rhs.minX; minY = rhs.minY;
-        sizeX = rhs.sizeX; sizeY = rhs.sizeY;
-
-        int length = capacity();
-        if (reallocate)
-        {
-            if (data != nullptr) delete[] data;
-            data = new T*[length];
-        }
-
-        memcpy(data, rhs.data, length * sizeof(T*));
         return *this;
     }
 
     index2d& operator=(index2d&& rhs) OE_NOEXCEPT
     {
         if (&rhs == this) return *this;
-        data = rhs.data;
-        rhs.data = nullptr;
-        minX = rhs.minX; minY = rhs.minY;
-        sizeX = rhs.sizeX; sizeY = rhs.sizeY;
+        container = std::move(rhs.container);
         return *this;
     }
 
 private:
-    void ensure_assignable(int x, int y)
-    {
-        if (data == nullptr)
+    // calculates positive remainder and accompanying quotient
+    static void modulo(int a, int b, int& q, int& r) {
+        r = a % b;
+        q = a / b;
+        if (r < 0)
         {
-            resize(x - 5, 10, y - 5, 10);
-            return;
+            q -= 1;
+            r += b;
         }
-
-        int xmin = minX, xmax = minX + sizeX - 1;
-        int ymin = minY, ymax = minY + sizeY - 1;
-        bool expandX = true, expandY = true;
-
-        if (x < xmin) xmin = x - (sizeX / 3);
-        else if (x > xmax) xmax = x + (sizeX / 3);
-        else expandX = false;
-
-        if (y < ymin) ymin = y - (sizeY / 3);
-        else if (y > ymax) ymax = y + (sizeY / 3);
-        else expandY = false;
-
-        if (expandX || expandY) resize(xmin, xmax - xmin + 1, ymin, ymax - ymin + 1);
-    }
-
-    void resize(int xmin, int xsize, int ymin, int ysize)
-    {
-        assert(xsize > 0);
-        assert(ysize > 0);
-
-        auto oldData = data;
-        auto oldSizeX = sizeX;
-        auto overlapSizeX = std::max(0, std::min(sizeX, xsize) + std::min(minX - xmin, 0));
-        auto overlapSizeY = std::max(0, std::min(sizeY, ysize) + std::min(minY - ymin, 0));
-        auto sourceOffset = sizeX - overlapSizeX;
-        auto targetOffset = std::max(minX - xmin, 0) + std::max(minY - ymin, 0) * xsize;
-
-        sizeX = xsize;
-        sizeY = ysize;
-        minX = xmin;
-        minY = ymin;
-        auto length = sizeX * sizeY;
-        data = new T*[length];
-        memset(data, 0, length * sizeof(T*));
-
-        if (oldData == nullptr) return;
-
-        for (auto i = 0; i < overlapSizeY; i++)
-        {
-            memcpy(data + targetOffset, oldData + sourceOffset, overlapSizeX * sizeof(T*));
-            targetOffset += sizeX;
-            sourceOffset += oldSizeX;
-        }
-
-        delete[] oldData;
     }
 };
 

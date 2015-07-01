@@ -28,7 +28,7 @@ namespace Index2d_Tests
         
         TEST_METHOD(ItemAdded_CanBeRetrieved)
         {
-            auto grid = index2d<double>{};
+            auto grid = index2d<double, 5>{};
             auto item = 3.14159;
 
             grid.set(1, 1, &item);
@@ -37,7 +37,7 @@ namespace Index2d_Tests
 
         TEST_METHOD(AddingAnItem_IncreasesCapacity)
         {
-            auto grid = index2d<std::string>{};
+            auto grid = index2d<std::string, 8>{};
             auto item = std::string{ "hello" };
             grid.set(-500, -500, &item);
             Assert::IsTrue(grid.capacity() > 0);
@@ -52,50 +52,10 @@ namespace Index2d_Tests
             Assert::IsTrue(nullptr == grid.get(990, 1));
         }
 
-        TEST_METHOD(ReservingAfterAddingSomeItems_IncreasesCapacity)
-        {
-            auto grid = index2d<int>{};
-            auto item = 0;
-
-            grid.set(93, 841, &item);
-            auto capacity = grid.capacity();
-
-            grid.reserve(90, 98, 835, 844);
-
-            Assert::AreNotEqual(capacity, grid.capacity());
-        }
-
-        TEST_METHOD(AfterReserving_UsingReservedAreaDoesNotIncreaseCapacity)
-        {
-            auto grid = index2d<int>{};
-            auto item = 0;
-            
-            grid.reserve(-100, 100, 20, 200);
-            auto capacity = grid.capacity();
-
-            grid.set(-100, 20, &item);
-            grid.set(-100, 200, &item);
-            grid.set(100, 20, &item);
-            grid.set(100, 200, &item);
-
-            Assert::AreEqual(capacity, grid.capacity());
-        }
-
-        TEST_METHOD(AfterReserving_ItemsOutsideReservedRangeCanBeAdded)
-        {
-            auto grid = index2d<int>{};
-            auto item = 7;
-
-            grid.reserve(0, 0, 1, 1);
-            grid.set(10, 100, &item);
-
-            Assert::AreEqual(item, *grid.get(10, 100));
-        }
-
         TEST_METHOD(AddedItems_CanBeIterated)
         {
             const auto itemCount = 100;
-            auto grid = index2d<int>{};
+            auto grid = index2d<int, 3>{};
 
             int buffer[itemCount];
             for (auto i = 0; i < itemCount; i++)
@@ -163,8 +123,9 @@ namespace Index2d_Tests
                 Assert::AreEqual(0, y);
                 Assert::AreEqual(3, *item);
                 total++;
-                Assert::AreEqual(1, total);
             });
+
+            Assert::AreEqual(1, total);
         }
 
         TEST_METHOD(MoveAssigment_RetainsItems)
@@ -175,9 +136,11 @@ namespace Index2d_Tests
             auto two = index2d<int>{};
 
             one.set(0, 0, &item);
+            one.set(300, -300, &item);
             two = std::move(one);
 
             Assert::AreEqual(42, *two.get(0, 0));
+            Assert::AreEqual(42, *two.get(300, -300));
         }
     };
 }
