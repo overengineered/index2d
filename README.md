@@ -6,6 +6,9 @@ Optimized for data that needs to be indexed by two integers and that
 is tightly grouped together, but you don't know in advance what values
 the indices will have, or how big the range will need to be.
 
+## dependencies
+
+Uses [boost flat_map](http://www.boost.org/doc/libs/1_58_0/doc/html/boost/container/flat_map.html)
 
 ## usage
 

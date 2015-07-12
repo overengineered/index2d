@@ -12,11 +12,9 @@
 // LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 // IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#include <cassert>
-#include <map>
+#include <boost\container\flat_map.hpp>
 #include <array>
 #include <memory>
-#include <algorithm>
 
 #ifdef _MSC_VER
 #define OE_NOEXCEPT _NOEXCEPT
@@ -32,7 +30,7 @@ class index2d final
 {
 private:
     using block = std::array<T*, BlockWidth*BlockWidth>;
-    std::map<uint64_t, std::unique_ptr<block>> container;
+    boost::container::flat_map<uint64_t, std::unique_ptr<block>> container;
     
 public:
     index2d()
