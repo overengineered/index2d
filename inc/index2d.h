@@ -31,17 +31,8 @@ template<class T, uint8_t BlockWidth = 10>
 class index2d final
 {
 private:
-    class block
-    {
-    private:
-        std::array<T*, BlockWidth*BlockWidth> data;
-    public:
-
-        void set(int i, int j, T* value) { data[i + j * BlockWidth] = value; }
-        T* get(int i, int j) { return data[i + j * BlockWidth]; }
-    };
-
-    std::map<std::tuple<int, int>, std::unique_ptr<block>> container;
+    using block = std::array<T*, BlockWidth*BlockWidth>;
+    std::map<uint64_t, std::unique_ptr<block>> container;
     
 public:
     index2d()
@@ -69,16 +60,17 @@ public:
         modulo(x, BlockWidth, qx, rx);
         modulo(y, BlockWidth, qy, ry);
 
-        auto index = std::tuple<int, int>(qx, qy);
+        int64_t key = ((int64_t)qy << 32) | (qx & 0x00000000FFFFFFFF);
 
-        auto entry = container.find(index);
+        auto entry = container.find(key);
         if (entry == container.end())
         {
             entry = container.emplace_hint(container.end(),
-                index, std::unique_ptr<block>(new block()));
+                key, std::unique_ptr<block>(new block()));
         }
 
-        entry->second->set(rx, ry, item);
+        block& data = *entry->second.get();
+        data[rx + ry * BlockWidth] = item;
     }
 
     T* get(int x, int y) const
@@ -87,12 +79,13 @@ public:
         modulo(x, BlockWidth, qx, rx);
         modulo(y, BlockWidth, qy, ry);
 
-        auto index = std::tuple<int, int>(qx, qy);
+        int64_t key = ((int64_t)qy << 32) | (qx & 0x00000000FFFFFFFF);
 
-        auto entry = container.find(index);
+        auto entry = container.find(key);
         if (entry == container.end()) return nullptr;
 
-        return entry->second->get(rx, ry);
+        block& data = *entry->second.get();
+        return data[rx + ry * BlockWidth];
     }
 
     size_t capacity() const
@@ -105,13 +98,15 @@ public:
     {
         for (const auto& it : container)
         {
-            int bx = std::get<0>(it.first);
-            int by = std::get<1>(it.first);
+            auto key = it.first;
+            int bx = (int)(key & 0xFFFFFFFF);
+            int by = (int)((key & 0xFFFFFFFF00000000) >> 32);
+            block& data = *it.second.get();
             for (int i = 0; i < BlockWidth; i++)
             {
                 for (int j = 0; j < BlockWidth; j++)
                 {
-                    T* value = it.second->get(i, j);
+                    T* value = data[i + j * BlockWidth];
                     if (value == nullptr) continue;
                     f(bx * BlockWidth + i, by * BlockWidth + j, value);
                 }
